@@ -1,5 +1,3 @@
-import os
-
 from flask import Flask, request
 import logging
 import json
@@ -14,12 +12,9 @@ logging.basicConfig(level=logging.INFO)
 # которые мы записали в прошлом пункте.
 
 cities = {
-    'москва': ['1533899/e719ad8929d05c4dc2b5',
-               '937455/405b67a12a8dc5a0c95e'],
-    'нью-йорк': ['997614/a6e57082928dd10821d7',
-                 '997614/c4a00fc54bd0d7076965'],
-    'париж': ["965417/63c5bca409bc209d2933",
-              '997614/40f80e96a6dd0f0f6534']
+    'москва': ['1652229/58eb157f52cc2b60a5d6'],
+
+    'париж': ["1652229/d4772a5a54327d17126a"]
 }
 
 # создаем словарь, где для каждого пользователя
@@ -68,8 +63,7 @@ def handle_dialog(res, req):
         # И спрашиваем какой город он хочет увидеть.
         else:
             sessionStorage[user_id]['first_name'] = first_name
-            res['response'][
-                'text'] = 'Приятно познакомиться, ' \
+            res['response']['text'] = 'Приятно познакомиться, ' \
                           + first_name.title() \
                           + '. Я - Алиса. Отгадаешь город по фото?'
             # получаем варианты buttons из ключей нашего словаря cities
@@ -77,32 +71,42 @@ def handle_dialog(res, req):
                 {
                     'title': 'да',
                     'hide': True
-                } for city in cities
+                }
             ]
+
     elif req['request']['original_utterance'].lower() in [
         'да',
-        'буду',
         'хочу',
-        'хорошо'
-    ]:
-        # Пользователь согласился, прощаемся.
-        res['response']['text'] = 'Слона можно найти на Яндекс.Маркете!'
+        'буду',
+        'хорошо']:
+        res['response']['text'] = 'Первый город'
+        res['response']['card'] = {}
+        res['response']['card']['type'] = 'BigImage'
+        res['response']['card']['image_id'] = cities['москва'][0]
+        return
+    elif req['request']['original_utterance'].lower() in [
+        'нет']:
+        res['response']['text'] = 'В другой раз'
         res['response']['end_session'] = True
         return
-    # если мы знакомы с пользователем и он нам что-то написал,
-    # то это говорит о том, что он уже говорит о городе,
-    # что хочет увидеть.
     else:
         # ищем город в сообщение от пользователя
         city = get_city(req)
         # если этот город среди известных нам,
         # то показываем его (выбираем одну из двух картинок случайно)
         if city in cities:
-            res['response']['card'] = {}
-            res['response']['card']['type'] = 'BigImage'
-            res['response']['card']['title'] = 'Этот город я знаю.'
-            res['response']['card']['image_id'] = random.choice(cities[city])
-            res['response']['text'] = 'Я угадал!'
+            res['response']['text'] = 'Ты угадал! Хочешь сыграть еще?'
+            res['response']['buttons'] = [
+                {
+                    'title': 'да',
+                    'hide': True
+                },
+                {
+                    'title': 'нет',
+                    'hide': True
+                }
+            ]
+
         # если не нашел, то отвечает пользователю
         # 'Первый раз слышу об этом городе.'
         else:
@@ -132,5 +136,4 @@ def get_first_name(req):
 
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run()
